@@ -26,7 +26,7 @@ class VoiceAlarmApp extends StatefulWidget {
 }
 
 class _VoiceAlarmAppState extends State<VoiceAlarmApp> {
-  StreamSubscription<AlarmSet>? _sub;
+  StreamSubscription<dynamic>? _sub;
   bool _ringScreenOpen = false;
 
   @override
@@ -34,19 +34,19 @@ class _VoiceAlarmAppState extends State<VoiceAlarmApp> {
     super.initState();
     // BehaviorSubject: od razu dostajemy aktualny stan, wiec dziala tez
     // gdy aplikacja zostala otwarta przez full-screen intent budzika.
-    _sub = Alarm.ringing.listen(_onRinging);
+    _sub = Alarm.ringing.listen((set) => _onRinging(set.alarms.map((a) => a.id).toList()));
   }
 
-  void _onRinging(AlarmSet set) {
-    if (set.alarms.isEmpty || _ringScreenOpen) return;
+  void _onRinging(List<int> ids) {
+    if (ids.isEmpty || _ringScreenOpen) return;
     final nav = navigatorKey.currentState;
     if (nav == null) {
       // Nawigator jeszcze nie gotowy - sprobuj po pierwszej klatce.
-      WidgetsBinding.instance.addPostFrameCallback((_) => _onRinging(set));
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onRinging(ids));
       return;
     }
     _ringScreenOpen = true;
-    final id = set.alarms.first.id;
+    final id = ids.first;
     nav
         .push(MaterialPageRoute<void>(builder: (_) => RingScreen(alarmId: id)))
         .whenComplete(() => _ringScreenOpen = false);
