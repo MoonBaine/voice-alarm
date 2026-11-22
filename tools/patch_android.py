@@ -42,9 +42,9 @@ if keyprops.exists() and kts.exists():
     if 'create("release")' not in t:
         block = """    signingConfigs {
         create("release") {
-            val props = java.util.Properties()
+            val props = Properties()
             val f = rootProject.file("key.properties")
-            if (f.exists()) { f.inputStream().use { props.load(it) } }
+            if (f.exists()) { FileInputStream(f).use { props.load(it) } }
             keyAlias = props["keyAlias"] as String?
             keyPassword = props["keyPassword"] as String?
             storeFile = (props["storeFile"] as String?)?.let { file(it) }
@@ -54,6 +54,7 @@ if keyprops.exists() and kts.exists():
 
 """
         t = t.replace("    buildTypes {", block + "    buildTypes {", 1)
+        t = "import java.io.FileInputStream\nimport java.util.Properties\n\n" + t
         t = t.replace('signingConfigs.getByName("debug")', 'signingConfigs.getByName("release")')
         kts.write_text(t)
         print("build.gradle.kts: podpisywanie kluczem release wlaczone")
