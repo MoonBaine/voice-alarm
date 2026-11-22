@@ -49,7 +49,18 @@ class _RingScreenState extends State<RingScreen> {
     final rel = p.join('recordings', '${DateTime.now().millisecondsSinceEpoch}.m4a');
     try {
       await _recorder.start(
-        const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: 96000, sampleRate: 44100),
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          bitRate: 96000,
+          sampleRate: 44100,
+          // Filtry, zeby budzik byl mniej slychac w nagraniu.
+          echoCancel: true,
+          noiseSuppress: true,
+          autoGain: false,
+          androidConfig: AndroidRecordConfig(
+            audioSource: AndroidAudioSource.voiceCommunication,
+          ),
+        ),
         path: Storage.instance.absolute(rel),
       );
     } catch (e) {
