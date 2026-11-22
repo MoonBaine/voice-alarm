@@ -34,4 +34,29 @@ for name in ("build.gradle.kts", "build.gradle"):
         t2 = re.sub(r"minSdk(Version)?\s*=?\s*flutter\.minSdkVersion", lambda x: "minSdk = 23" if name.endswith("kts") else "minSdkVersion 23", t)
         g.write_text(t2)
         print(f"{name}: minSdk -> 23" if t2 != t else f"{name}: bez zmian")
+# --- stale podpisywanie wydania (jesli workflow przygotowal key.properties) ---
+keyprops = root.parent / "key.properties"
+kts = root / "build.gradle.kts"
+if keyprops.exists() and kts.exists():
+    t = kts.read_text()
+    if 'create("release")' not in t:
+        block = """    signingConfigs {
+        create("release") {
+            val props = java.util.Properties()
+            val f = rootProject.file("key.properties")
+            if (f.exists()) { f.inputStream().use { props.load(it) } }
+            keyAlias = props["keyAlias"] as String?
+            keyPassword = props["keyPassword"] as String?
+            storeFile = (props["storeFile"] as String?)?.let { file(it) }
+            storePassword = props["storePassword"] as String?
+        }
+    }
+
+"""
+        t = t.replace("    buildTypes {", block + "    buildTypes {", 1)
+        t = t.replace('signingConfigs.getByName("debug")', 'signingConfigs.getByName("release")')
+        kts.write_text(t)
+        print("build.gradle.kts: podpisywanie kluczem release wlaczone")
+elif keyprops.exists():
+    print("UWAGA: brak build.gradle.kts - podpisywanie nie zostalo wlaczone")
 print("AndroidManifest.xml zaktualizowany (dodano:", ", ".join(missing) or "nic", ")")

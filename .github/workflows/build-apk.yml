@@ -2,6 +2,9 @@ name: Build APK
 
 on: [push, workflow_dispatch]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,6 +25,18 @@ jobs:
       - name: Generate Android project
         run: flutter create --platforms=android --org com.example --project-name voice_alarm .
 
+      - name: Set up release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+            printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=voicealarm\nstoreFile=upload-keystore.jks\n' "$KEYSTORE_PASSWORD" "$KEYSTORE_PASSWORD" > android/key.properties
+          else
+            echo "::warning::Brak sekretow KEYSTORE_BASE64 / KEYSTORE_PASSWORD - APK podpisany losowym kluczem, nie da sie go zaktualizowac bez odinstalowania."
+          fi
+
       - name: Patch Android config
         run: python3 tools/patch_android.py
 
@@ -32,9 +47,16 @@ jobs:
         continue-on-error: true
 
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --build-name=0.1.${{ github.run_number }} --build-number=${{ github.run_number }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: voice-alarm-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          files: build/app/outputs/flutter-apk/app-release.apk
