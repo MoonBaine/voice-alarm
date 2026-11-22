@@ -105,6 +105,33 @@ class _RingScreenState extends State<RingScreen> {
     }
   }
 
+  Future<void> _snooze() async {
+    final alarm = _alarm;
+    if (alarm == null || _saving) return;
+    setState(() => _saving = true);
+    _ticker?.cancel();
+    _stopwatch.stop();
+    try {
+      if (_recording) await _recorder.cancel();
+      final ok = await AlarmService.snooze(alarm);
+      if (!ok) {
+        setState(() {
+          _saving = false;
+          _recording = false;
+          _error = 'Limit drzemek wyczerpany. Nagraj glosowke.';
+        });
+        return;
+      }
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      setState(() {
+        _saving = false;
+        _recording = false;
+        _error = 'Nie udalo sie ustawic drzemki: $e';
+      });
+    }
+  }
+
   @override
   void dispose() {
     _ticker?.cancel();
@@ -174,6 +201,22 @@ class _RingScreenState extends State<RingScreen> {
                           label: Text(_longEnough ? 'Zakoncz i wylacz budzik' : 'Nagrywam...'),
                         ),
                 ),
+                const SizedBox(height: 12),
+                if (_alarm != null && AlarmService.snoozesLeft(widget.alarmId) > 0)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: _saving ? null : _snooze,
+                      icon: const Icon(Icons.snooze),
+                      label: Text(
+                        'Drzemka $snoozeMinutes min '
+                        '(zostalo ${AlarmService.snoozesLeft(widget.alarmId)})',
+                      ),
+                    ),
+                  )
+                else
+                  Text('Limit drzemek wyczerpany', style: theme.textTheme.bodyMedium),
               ],
             ),
           ),

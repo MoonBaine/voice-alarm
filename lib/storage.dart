@@ -32,6 +32,11 @@ class Storage {
   List<AlarmItem> loadAlarms() => _loadList('alarms', AlarmItem.fromJson);
   Future<void> saveAlarms(List<AlarmItem> v) => _saveList('alarms', v.map((e) => e.toJson()));
 
+  // ---- drzemki (ile razy uzyto w biezacym dzwonieniu) ----
+  int snoozeCount(int alarmId) => _prefs.getInt('snooze_$alarmId') ?? 0;
+  Future<void> setSnoozeCount(int alarmId, int n) =>
+      n == 0 ? _prefs.remove('snooze_$alarmId') : _prefs.setInt('snooze_$alarmId', n);
+
   // ---- wlasne dzwieki ----
   List<SoundItem> loadCustomSounds() => _loadList('sounds', SoundItem.fromJson);
   Future<void> saveCustomSounds(List<SoundItem> v) => _saveList('sounds', v.map((e) => e.toJson()));
