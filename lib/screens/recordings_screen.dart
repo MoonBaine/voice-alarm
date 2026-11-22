@@ -1,5 +1,7 @@
+import 'package:cross_file/cross_file.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../audio_preview.dart';
 import '../models.dart';
@@ -46,6 +48,13 @@ class _RecordingsScreenState extends State<RecordingsScreen> {
     }
   }
 
+  Future<void> _share(RecordingItem r) async {
+    await SharePlus.instance.share(ShareParams(
+      files: [XFile(Storage.instance.absolute(r.path), mimeType: 'audio/mp4')],
+      text: 'Nagranie z budzika ${_fmt(r.createdAt)}',
+    ));
+  }
+
   Future<void> _delete(RecordingItem r) async {
     if (_playing == r.path) await _preview.stop();
     await Storage.instance.deleteRecording(r);
@@ -76,9 +85,19 @@ class _RecordingsScreenState extends State<RecordingsScreen> {
                   ),
                   title: Text(_fmt(r.createdAt)),
                   subtitle: Text(r.alarmLabel.isEmpty ? '$secs s' : '${r.alarmLabel} • $secs s'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _delete(r),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Udostepnij / zapisz',
+                        icon: const Icon(Icons.share),
+                        onPressed: () => _share(r),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => _delete(r),
+                      ),
+                    ],
                   ),
                 );
               },
